@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Hand Gesture Recognition</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="dashboard-page">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-hand-spock"></i>
+                <span>GestureAI</span>
+            </div>
+            <button class="toggle-sidebar" id="toggleSidebar">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#dashboard" class="nav-link active" data-section="dashboard">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#recognition" class="nav-link" data-section="recognition">
+                <i class="fas fa-video"></i>
+                <span>Recognition</span>
+            </a>
+            <a href="#analytics" class="nav-link" data-section="analytics">
+                <i class="fas fa-bar-chart"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#settings" class="nav-link" data-section="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Navigation Bar -->
+        <header class="top-navbar">
+            <div class="navbar-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h2 class="page-title">Dashboard</h2>
+            </div>
+
+            <div class="navbar-right">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <div class="user-profile">
+                    <img src="https://via.placeholder.com/40" alt="User">
+                    <span>John Doe</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="content-section active">
+            <div class="dashboard-header">
+                <h1>Welcome to GestureAI</h1>
+                <p>Real-time Hand Gesture Recognition Dashboard</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                        <i class="fas fa-hand-paper"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Total Gestures</h3>
+                        <p class="stat-value">1,240</p>
+                        <span class="stat-change">+12% from last week</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Recognition Rate</h3>
+                        <p class="stat-value">94.5%</p>
+                        <span class="stat-change">+3.2% improvement</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                        <i class="fas fa-hourglass-start"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Avg Response Time</h3>
+                        <p class="stat-value">45ms</p>
+                        <span class="stat-change">Optimal performance</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Active Devices</h3>
+                        <p class="stat-value">8</p>
+                        <span class="stat-change">All connected</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-charts">
+                <div class="chart-container">
+                    <h3>Gesture Distribution</h3>
+                    <canvas id="distributionChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Recognition Trend</h3>
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recognition Section -->
+        <section id="recognition" class="content-section">
+            <div class="recognition-header">
+                <h1>Hand Gesture Recognition</h1>
+                <p>Real-time gesture detection and analysis</p>
+            </div>
+
+            <div class="recognition-container">
+                <div class="camera-panel">
+                    <div class="camera-frame">
+                        <video id="video" autoplay playsinline></video>
+                        <canvas id="canvas"></canvas>
+                        <div class="camera-overlay">
+                            <div class="crosshair"></div>
+                        </div>
+                    </div>
+
+                    <div class="camera-controls">
+                        <button class="control-btn" id="startCamera">
+                            <i class="fas fa-play"></i> Start Camera
+                        </button>
+                        <button class="control-btn" id="stopCamera">
+                            <i class="fas fa-stop"></i> Stop Camera
+                        </button>
+                        <button class="control-btn" id="captureScreenshot">
+                            <i class="fas fa-camera"></i> Screenshot
+                        </button>
+                    </div>
+
+                    <div class="camera-status">
+                        <p id="cameraStatus"><i class="fas fa-circle"></i> Camera OFF</p>
+                    </div>
+                </div>
+
+                <div class="info-panel">
+                    <div class="gesture-display">
+                        <h3>Current Gesture</h3>
+                        <div class="gesture-box">
+                            <span id="gestureDisplay">None</span>
+                        </div>
+                        <p id="handStatus">Hand Not Detected</p>
+                    </div>
+
+                    <div class="gesture-confidence">
+                        <h3>Confidence Score</h3>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceFill"></div>
+                        </div>
+                        <p id="confidenceText">0%</p>
+                    </div>
+
+                    <div class="gesture-details">
+                        <h3>Gesture Details</h3>
+                        <div class="details-grid">
+                            <div class="detail-item">
+                                <span>Hand Detected:</span>
+                                <strong id="handDetected">No</strong>
+                            </div>
+                            <div class="detail-item">
+                                <span>Landmarks:</span>
+                                <strong id="landmarks">0/21</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analytics Section -->
+        <section id="analytics" class="content-section">
+            <div class="analytics-header">
+                <h1>Gesture Analytics</h1>
+                <p>Detailed insights and performance metrics</p>
+            </div>
+
+            <div class="analytics-grid">
+                <div class="chart-container large">
+                    <h3>Gesture Frequency</h3>
+                    <canvas id="gestureChart"></canvas>
+                    <button id="resetAnalytics" class="reset-btn">Reset Analytics</button>
+                </div>
+
+                <div class="chart-container large">
+                    <h3>Recognition Accuracy</h3>
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" class="content-section">
+            <div class="settings-header">
+                <h1>Settings</h1>
+                <p>Configure your preferences</p>
+            </div>
+
+            <div class="settings-grid">
+                <div class="settings-card">
+                    <h3>General Settings</h3>
+                    <div class="settings-item">
+                        <label>Notification Sound</label>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-item">
+                        <label>Auto-start Camera</label>
+                        <label class="toggle">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3>Camera Settings</h3>
+                    <div class="settings-item">
+                        <label>Resolution</label>
+                        <select>
+                            <option>720p</option>
+                            <option selected>1080p</option>
+                            <option>4K</option>
+                        </select>
+                    </div>
+                    <div class="settings-item">
+                        <label>Frame Rate</label>
+                        <select>
+                            <option>24 FPS</option>
+                            <option selected>30 FPS</option>
+                            <option>60 FPS</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3>Recognition Settings</h3>
+                    <div class="settings-item">
+                        <label>Confidence Threshold</label>
+                        <input type="range" min="0" max="100" value="70">
+                        <span>70%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="dashboard-script.js"></script>
+</body>
+</html>

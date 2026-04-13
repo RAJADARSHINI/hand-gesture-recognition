@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Gesture Detection - Simple</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        video, canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-start {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-stop {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+        .btn-stop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .info-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .info-box p {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            grid-column: 1 / -1;
+        }
+        .status.success {
+            background: rgba(67, 233, 123, 0.2);
+            color: #43e97b;
+            border-left: 4px solid #43e97b;
+        }
+        .status.error {
+            background: rgba(255, 99, 132, 0.2);
+            color: #ff6384;
+            border-left: 4px solid #ff6384;
+        }
+        .status.waiting {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖐️ Hand Gesture Detection</h1>
+        
+        <div class="video-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <button class="btn-start" id="startBtn">Start Camera</button>
+            <button class="btn-stop" id="stopBtn">Stop Camera</button>
+        </div>
+
+        <div class="info-panel">
+            <div class="status waiting" id="status">
+                ⏳ Click "Start Camera" to begin
+            </div>
+            
+            <div class="info-box">
+                <p>Camera Status</p>
+                <div class="info-value" id="cameraStatus">OFF</div>
+            </div>
+
+            <div class="info-box">
+                <p>Hand Detected</p>
+                <div class="info-value" id="handStatus">No</div>
+            </div>
+
+            <div class="info-box">
+                <p>Confidence</p>
+                <div class="info-value" id="confidence">0%</div>
+            </div>
+
+            <div class="info-box">
+                <p>Current Gesture</p>
+                <div class="info-value" id="gesture">-</div>
+            </div>
+
+            <div class="info-box">
+                <p>FPS</p>
+                <div class="info-value" id="fps">0</div>
+            </div>
+
+            <div class="info-box">
+                <p>Total Detections</p>
+                <div class="info-value" id="detectionCount">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MediaPipe Hands -->
+    <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusDiv = document.getElementById('status');
+        const cameraStatusDiv = document.getElementById('cameraStatus');
+        const handStatusDiv = document.getElementById('handStatus');
+        const confidenceDiv = document.getElementById('confidence');
+        const gestureDiv = document.getElementById('gesture');
+        const fpsDiv = document.getElementById('fps');
+        const detectionCountDiv = document.getElementById('detectionCount');
+
+        let stream = null;
+        let hands = null;
+        let camera = null;
+        let isRunning = false;
+        let detectionCount = 0;
+        let fps = 0;
+        let lastTime = Date.now();
+        let frameCount = 0;
+
+        // Initialize MediaPipe Hands
+        async function initHands() {
+            console.log('Initializing MediaPipe Hands...');
+            
+            hands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                }
+            });
+
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5,
+                staticImageMode: false
+            });
+
+            hands.onResults(onResults);
+            console.log('✓ MediaPipe Hands initialized');
+        }
+
+        // Detection results
+        function onResults(results) {
+            frameCount++;
+            
+            // Calculate FPS
+            const now = Date.now();
+            if (now - lastTime >= 1000) {
+                fps = frameCount;
+                fpsDiv.textContent = fps;
+                frameCount = 0;
+                lastTime = now;
+            }
+
+            // Draw on canvas
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                detectionCount++;
+                detectionCountDiv.textContent = detectionCount;
+                
+                handStatusDiv.textContent = '✓ YES';
+                handStatusDiv.style.color = '#43e97b';
+                
+                const landmarks = results.multiHandLandmarks[0];
+                const confidence = results.multiHandedness[0].score;
+                
+                confidenceDiv.textContent = (confidence * 100).toFixed(1) + '%';
+                
+                // Draw landmarks
+                drawLandmarks(landmarks);
+                
+                // Detect gesture
+                detectGesture(landmarks);
+                
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✓ Hand detected!';
+            } else {
+                handStatusDiv.textContent = '✗ No';
+                handStatusDiv.style.color = '#ff6384';
+                confidenceDiv.textContent = '0%';
+                gestureDiv.textContent = '-';
+                
+                statusDiv.className = 'status waiting';
+                statusDiv.textContent = '⏳ Waiting for hand...';
+            }
+
+            ctx.restore();
+        }
+
+        // Draw hand landmarks
+        function drawLandmarks(landmarks) {
+            const scale = 2;
+            
+            // Draw circles
+            for (let i = 0; i < landmarks.length; i++) {
+                const x = landmarks[i].x * canvas.width;
+                const y = landmarks[i].y * canvas.height;
+                
+                ctx.fillStyle = '#00ff00';
+                ctx.beginPath();
+                ctx.arc(x, y, 5 * scale, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+
+            // Draw connections
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2 * scale;
+            
+            const connections = [
+                [0, 1], [1, 2], [2, 3], [3, 4],    // Thumb
+                [0, 5], [5, 6], [6, 7], [7, 8],    // Index
+                [0, 9], [9, 10], [10, 11], [11, 12],  // Middle
+                [0, 13], [13, 14], [14, 15], [15, 16], // Ring
+                [0, 17], [17, 18], [18, 19], [19, 20]  // Pinky
+            ];
+
+            for (const [start, end] of connections) {
+                const x1 = landmarks[start].x * canvas.width;
+                const y1 = landmarks[start].y * canvas.height;
+                const x2 = landmarks[end].x * canvas.width;
+                const y2 = landmarks[end].y * canvas.height;
+                
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+        }
+
+        // Detect gesture
+        function detectGesture(landmarks) {
+            const thumbTip = landmarks[4].y;
+            const indexTip = landmarks[8].y;
+            const middleTip = landmarks[12].y;
+            const ringTip = landmarks[16].y;
+            const pinkyTip = landmarks[20].y;
+
+            const indexPip = landmarks[6].y;
+            const middlePip = landmarks[10].y;
+            const ringPip = landmarks[14].y;
+            const pinkyPip = landmarks[18].y;
+            
+            const thumbExtended = thumbTip < landmarks[2].y - 0.05;
+            const indexExtended = indexTip < indexPip - 0.05;
+            const middleExtended = middleTip < middlePip - 0.05;
+            const ringExtended = ringTip < ringPip - 0.05;
+            const pinkyExtended = pinkyTip < pinkyPip - 0.05;
+
+            let gesture = '?';
+
+            if (indexExtended && middleExtended && !thumbExtended && !ringExtended && !pinkyExtended) {
+                gesture = '✌️ Peace';
+            } else if (!indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
+                gesture = '✊ Fist';
+            } else if (indexExtended && middleExtended && ringExtended && pinkyExtended) {
+                gesture = '✋ Open';
+            } else if (thumbExtended && !indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
+                gesture = '👍 Thumbs';
+            }
+
+            gestureDiv.textContent = gesture;
+        }
+
+        // Start camera
+        startBtn.addEventListener('click', async () => {
+            try {
+                statusDiv.className = 'status waiting';
+                statusDiv.textContent = '⏳ Starting camera...';
+                
+                await initHands();
+                
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    } 
+                });
+
+                video.srcObject = stream;
+
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    
+                    console.log('Video size:', canvas.width, 'x', canvas.height);
+                    
+                    camera = new Camera(video, {
+                        onFrame: async () => {
+                            try {
+                                await hands.send({ image: video });
+                            } catch (e) {
+                                console.error('Detection error:', e);
+                            }
+                        },
+                        width: canvas.width,
+                        height: canvas.height
+                    });
+
+                    camera.start();
+                    isRunning = true;
+                    cameraStatusDiv.textContent = 'ON';
+                    cameraStatusDiv.style.color = '#43e97b';
+                    
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✓ Camera ready! Show your hand...';
+                    
+                    console.log('✓ All systems ready!');
+                };
+
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '✗ Error: ' + error.message;
+                cameraStatusDiv.textContent = 'ERROR';
+                cameraStatusDiv.style.color = '#ff6384';
+            }
+        });
+
+        // Stop camera
+        stopBtn.addEventListener('click', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                if (camera) camera.stop();
+                isRunning = false;
+                
+                cameraStatusDiv.textContent = 'OFF';
+                cameraStatusDiv.style.color = '#666';
+                handStatusDiv.textContent = '-';
+                confidenceDiv.textContent = '0%';
+                gestureDiv.textContent = '-';
+                
+                statusDiv.className = 'status waiting';
+                statusDiv.textContent = '⏳ Camera stopped';
+            }
+        });
+
+        console.log('✓ Application loaded and ready');
+    </script>
+</body>
+</html>
